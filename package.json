@@ -1,0 +1,46 @@
+{
+  "name": "better-memory-cache",
+  "version": "0.0.1",
+  "description": "A memory cache written in Typescript with support for stale-while-revalidate and background refresh",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^22.9.0",
+    "@vitest/coverage-v8": "^2.1.5",
+    "eslint": "9.14.0",
+    "globals": "^15.12.0",
+    "mustache": "^4.2.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.14.0",
+    "vitest": "^2.1.5"
+  },
+  "author": "blex41",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blex41/better-memory-cache.git"
+  },
+  "bugs": {
+    "url": "https://github.com/blex41/better-memory-cache/issues"
+  },
+  "homepage": "https://github.com/blex41/better-memory-cache#readme",
+  "keywords": [
+    "cache",
+    "memory",
+    "stale",
+    "refresh",
+    "typescript"
+  ]
+}
