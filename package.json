@@ -43,5 +43,8 @@
     "stale",
     "refresh",
     "typescript"
-  ]
+  ],
+  "publishConfig": {
+    "provenance": true
+  }
 }
