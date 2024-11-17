@@ -4,7 +4,7 @@
   "description": "A memory cache written in Typescript with support for stale-while-revalidate and background refresh",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
