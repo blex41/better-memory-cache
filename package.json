@@ -2,7 +2,7 @@
   "name": "better-memory-cache",
   "version": "0.0.0-development",
   "description": "A memory cache written in Typescript with support for stale-while-revalidate and background refresh",
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [

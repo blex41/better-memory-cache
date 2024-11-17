@@ -29,23 +29,16 @@ export interface CacheOptions<T> {
 
     /**
      * Delay in milliseconds between automatic key refreshes. Useful for keeping the cache up-to-date even when not in use.
+     * Requires a `fetchMethod` to be set.
      * If set to null, keys will not be refreshed automatically.
      * @default null
      */
     refreshAfterMs?: number | null;
 
     /**
-     * Timeout in milliseconds for fetching a new value when a key is automatically refreshed.
-     * If the timeout is exceeded, the refresh will be aborted.
-     * Requires a `fetchMethod` to be set.
-     * @default null
-     */
-    refreshTimeoutMs?: number | null;
-
-    /**
      * Precision in milliseconds used for auto-eviction and auto-refresh timers.
      * A higher value is recommended for performance, and a lower one for precision.
-     * @default 1000
+     * @default 10000
      */
     timePrecisionMs?: number | null;
 
@@ -61,6 +54,7 @@ export interface CacheOptions<T> {
     /**
      * Maximum number of keys in the cache. If set to null, the cache will grow indefinitely.
      * Exceeding this limit will trigger an eviction based on the `evictStrategy` if one is set, or throw an error otherwise.
+     * @default null
      */
     maxKeys?: number | null;
 
@@ -68,6 +62,7 @@ export interface CacheOptions<T> {
      * Strategy used for evicting keys when the `maxKeys` limit is reached.
      * If set to null, exceeding the limit will throw an error.
      * @enum {'LRU' | null}
+     * @default null
      */
     evictStrategy?: 'LRU' | null;
 };
