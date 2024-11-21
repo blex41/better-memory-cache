@@ -12,7 +12,7 @@ export default class Cache<T> {
     private _timePrecisionMs: number;
     private _fetchMethod?: ((key: string) => T | undefined | Promise<T | undefined>) | null;
     private _maxKeys?: number | null;
-    private _evictStrategy: 'LRU' | null = null;
+    private _evictStrategy: 'LRU' | 'FIFO' | null = null;
     private _keys: string[] = [];
     private _keyLength: number = 0;
     private _cache: Record<string, Wrapper<T>> = {};
@@ -47,19 +47,15 @@ export default class Cache<T> {
      * Returns the value of a key in the cache if present, and undefined otherwise.
      */
     get(key: string): T | undefined {
-        this._validateKey(key);
+        return this._get(key, this._now());
+    }
 
-        if (!this.has(key)) {
-            return;
-        }
-
-        if (this._isExpired(key)) {
-            this.del(key);
-            return;
-        }
-
-        this._cache[key].a = this._now();
-        return this._cache[key].v;
+    /**
+     * Returns the value of multiple keys in the cache if present, and undefined otherwise.
+     */
+    mget(keys: string[]): Array<T | undefined> {
+        const ts = this._now();
+        return keys.map(key => this._get(key, ts));
     }
 
     /**
@@ -94,22 +90,15 @@ export default class Cache<T> {
      * Sets a key-value pair in the cache.
      */
     set(key: string, value: T) {
-        this._validateKey(key);
+        return this._set(key, value, this._now());
+    }
 
-        if (!this.has(key) && this._maxKeys && this._keyLength >= this._maxKeys) {
-            this._onMaxKeysReached();
-        }
-
-        const oldWrapper = this._cache[key];
+    /**
+     * Sets multiple key-value pairs at once in the cache.
+     */
+    mset(pairs: [string, T][]) {
         const ts = this._now();
-
-        this._cache[key] = {
-            v: value,
-            a: oldWrapper?.a || null,
-            r: ts,
-        };
-
-        this._updateStats();
+        pairs.forEach(([key, value]) => this._set(key, value, ts));
     }
 
     /**
@@ -166,12 +155,14 @@ export default class Cache<T> {
      * Deletes a key from the cache.
      */
     del(key: string): Cache<T> {
-        this._validateKey(key);
+        return this._del(key);
+    }
 
-        delete this._cache[key];
-
-        this._updateStats();
-
+    /**
+     * Deletes multiple keys from the cache.
+     */
+    mdel(keys: string[]): Cache<T> {
+        keys.forEach(key => this._del(key));
         return this;
     }
 
@@ -280,6 +271,51 @@ export default class Cache<T> {
             && this._cache[key].r + this._refreshAfterMs < this._now();
     }
 
+    private _set(key: string, value: T, ts: number) {
+        this._validateKey(key);
+
+        if (!this.has(key) && this._maxKeys && this._keyLength >= this._maxKeys) {
+            this._onMaxKeysReached();
+        }
+
+        const oldWrapper = this._cache[key];
+
+        this._cache[key] = {
+            v: value,
+            c: ts,
+            a: oldWrapper?.a || null,
+            r: ts,
+        };
+
+        this._updateStats();
+    }
+
+    private _get(key: string, ts: number): T | undefined {
+        this._validateKey(key);
+
+        if (!this.has(key)) {
+            return;
+        }
+
+        if (this._isExpired(key)) {
+            this.del(key);
+            return;
+        }
+
+        this._cache[key].a = ts;
+        return this._cache[key].v;
+    }
+
+    private _del(key: string): Cache<T> {
+        this._validateKey(key);
+
+        delete this._cache[key];
+
+        this._updateStats();
+
+        return this;
+    }
+
     /**
      * Evicts keys based on the evict strategy or throws an error if no strategy is set.
      */
@@ -287,6 +323,9 @@ export default class Cache<T> {
         switch (this._evictStrategy) {
             case 'LRU':
                 this._evictLRU();
+                break;
+            case 'FIFO':
+                this._evictFIFO();
                 break;
             default:
                 throw new InvalidStateError(this._getLogPrefix() + "Cache is full. Either increase maxKeys or set an evictStrategy");
@@ -297,18 +336,35 @@ export default class Cache<T> {
      * Evicts the least recently used keys to make room for an extra key.
      */
     private _evictLRU() {
-        const keysByAccessedAtDescNullsLast = this._keys.sort((a, b) => {
-            const accessedAtA = this._cache[a].a || this._cache[a].r;
-            const accessedAtB = this._cache[b].a || this._cache[b].r;
-            if (accessedAtA === accessedAtB) {
-                return 0;
-            }
-            return accessedAtA - accessedAtB < 0 ? 1 : -1;
-        });
+        const keysByAccessedAtDescNullsLast =
+            this._sortKeysDescNullsLast(key => this._cache[key].a || this._cache[key].r);
 
         const keysToEvict = keysByAccessedAtDescNullsLast.slice(this._maxKeys! - 1);
 
         keysToEvict.forEach(key => this.del(key));
+    }
+
+    /**
+     * Evicts the least recently refreshed keys to make room for an extra key.
+     */
+    private _evictFIFO() {
+        const keysByCreatedAtDescNullsLast =
+            this._sortKeysDescNullsLast(key => this._cache[key].c);
+
+        const keysToEvict = keysByCreatedAtDescNullsLast.slice(this._maxKeys! - 1);
+
+        keysToEvict.forEach(key => this.del(key));
+    }
+
+    private _sortKeysDescNullsLast(propGetter: (key: string) => number) {
+        return this._keys.sort((a, b) => {
+            const propA = propGetter(a);
+            const propB = propGetter(b);
+            if (propA === propB) {
+                return 0;
+            }
+            return propA - propB < 0 ? 1 : -1;
+        });
     }
 
     /**

@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/github/license/blex41/better-memory-cache)
 [![Codecov](https://codecov.io/github/blex41/better-memory-cache/branch/main/graph/badge.svg?token=OR8OIEK4SN)](https://codecov.io/github/blex41/better-memory-cache)
 
-A lightweight, dependency-free memory cache written in Typescript, with support for stale-while-revalidate, background refresh and LRU strategy.
+A lightweight, dependency-free memory cache written in Typescript, with support for stale-while-revalidate, background refresh, LRU and FIFO strategy.
 
 ## Install
 
@@ -44,6 +44,15 @@ const fruitCache = new Cache<string>({
     fruitCache.del('apple');
     console.log(fruitCache.has('apple')); // false
     console.log(fruitCache.get('apple')); // undefined
+
+    // Multiple keys at once
+    fruitCache.mset([
+        ['kiwi', 'kiwi_value'],
+        ['lemon', 'lemon_value']
+    ]);
+    fruitCache.mget(['kiwi', 'lemon']); // ["kiwi_value", "lemon_value"]
+    fruitCache.mdel(['kiwi', 'lemon']); 
+    fruitCache.mget(['kiwi', 'lemon']); // [undefined, undefined]
 
     // Fetching a value asynchronously
     const banana = await fruitCache.fetch('banana');
@@ -145,10 +154,13 @@ interface CacheOptions<T> {
 
     /**
      * Strategy used for evicting keys when the `maxKeys` limit is reached.
+     * - "LRU" will evict the least recently used key, or the least recently
+     *   refreshed one if accessed at the same time or never.
+     * - "FIFO" will evict the first key that was added to the cache.
      * If set to null, exceeding the limit will throw an error.
-     * @enum {'LRU' | null}
+     * @enum {'LRU' | 'FIFO' | null}
      * @default null
      */
-    evictStrategy?: 'LRU' | null;
+    evictStrategy?: 'LRU' | 'FIFO' | null;
 }
 ```

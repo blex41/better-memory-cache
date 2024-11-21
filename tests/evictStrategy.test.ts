@@ -13,8 +13,9 @@ function initCache(evictStrategy?: CacheOptions<string>['evictStrategy']) {
     for (let i = 1; i <= 9; i++) {
         dump[`key_${i}`] = {
             v: `value_${i}`,
+            c: i,
             a: null,
-            r: 0,
+            r: i,
         };
     }
 
@@ -48,22 +49,52 @@ describe('EvictStrategy', () => {
             await sleep(1);
             cache.get('key_2');
             await sleep(1);
-            cache.get('key_1');
-            await sleep(1);
-            cache.get('key_4');
+            cache.mget(['key_1', 'key_4']);
             await sleep(1);
             cache.set('key_10', 'value_10');
 
             expect(cache.keys()).toEqual([
                 'key_1',
                 'key_2',
+                'key_4',
+                'key_5',
+                'key_6',
+                'key_7',
+                'key_8',
+                'key_9',
+                'key_10'
+            ]);
+        });
+    });
+
+    describe('FIFO', () => {
+        it('evicts the least recently created key when maxKeys is exceeded', async () => {
+            const cache = initCache('FIFO');
+
+            cache.get('key_6');
+            await sleep(1);
+            cache.get('key_2');
+            await sleep(1);
+            cache.get('key_1');
+            await sleep(1);
+            cache.get('key_4');
+            await sleep(1);
+            // Creating them at the same time to test the order
+            cache.mset([
+                ['key_10', 'value_10'],
+                ['key_11', 'value_11']
+            ]);
+
+            expect(cache.keys()).toEqual([
                 'key_3',
                 'key_4',
                 'key_5',
                 'key_6',
                 'key_7',
                 'key_8',
-                'key_10'
+                'key_9',
+                'key_10',
+                'key_11'
             ]);
         });
     });

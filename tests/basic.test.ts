@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import Cache from '../src/index';
+import { INVALID_KEYS_TEST_ARRAY } from './constants';
 
 function initCache() {
     return new Cache<string>();
@@ -7,14 +8,9 @@ function initCache() {
 
 describe('Basic Cache', () => {
     describe('set', () => {
-        it.each([
-            ['1', 1],
-            ['""', ''],
-            ['{}', {}],
-            ['[]', []],
-            ['null', null],
-            ['undefined', undefined],
-          ])('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
             const cache = initCache();
 
             expect(() => cache.set(key, 'bar'))
@@ -29,15 +25,32 @@ describe('Basic Cache', () => {
         });
     });
 
+    describe('mset', () => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+            const cache = initCache();
+
+            expect(() => cache.mset([[key, 'bar']]))
+                .toThrowError("Key must be a non-empty string");
+          })
+
+        it('creates multiple entries', () => {
+            const cache = initCache();
+
+            cache.mset([
+                ['foo', 'bar'],
+                ['baz', 'qux']
+            ]);
+            expect(cache.get('foo')).toBe('bar');
+            expect(cache.get('baz')).toBe('qux');
+        });
+    });
+
     describe('get', () => {
-        it.each([
-            ['1', 1],
-            ['""', ''],
-            ['{}', {}],
-            ['[]', []],
-            ['null', null],
-            ['undefined', undefined],
-          ])('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
             const cache = initCache();
 
             expect(() => cache.get(key))
@@ -56,6 +69,28 @@ describe('Basic Cache', () => {
 
             cache.set('foo', 'bar');
             expect(cache.get('baz')).toBe(undefined);
+        });
+    });
+
+    describe('mget', () => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+            const cache = initCache();
+
+            expect(() => cache.mget([key]))
+                .toThrowError("Key must be a non-empty string");
+          })
+
+        it('retrieves existing values and undefined otherwise', () => {
+            const cache = initCache();
+
+            cache.mset([
+                ['foo', 'bar'],
+                ['baz', 'qux']
+            ]);
+
+            expect(cache.mget(['foo', 'baz', 'banzai'])).toEqual(['bar', 'qux', undefined]);
         });
     });
 
@@ -78,21 +113,19 @@ describe('Basic Cache', () => {
         it('returns an array with all keys', () => {
             const cache = initCache();
 
-            cache.set('key_1', 'foo');
-            cache.set('key_2', 'bar');
+            cache.mset([
+                ['key_1', 'foo'],
+                ['key_2', 'bar']
+            ]);
+
             expect(cache.keys()).toEqual(['key_1', 'key_2']);
         });
     });
 
     describe('has', () => {
-        it.each([
-            ['1', 1],
-            ['""', ''],
-            ['{}', {}],
-            ['[]', []],
-            ['null', null],
-            ['undefined', undefined],
-          ])('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
             const cache = initCache();
 
             expect(() => cache.has(key))
@@ -115,14 +148,9 @@ describe('Basic Cache', () => {
     });
 
     describe('del', () => {
-        it.each([
-            ['1', 1],
-            ['""', ''],
-            ['{}', {}],
-            ['[]', []],
-            ['null', null],
-            ['undefined', undefined],
-          ])('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
             const cache = initCache();
 
             expect(() => cache.del(key))
@@ -132,8 +160,10 @@ describe('Basic Cache', () => {
         it('deletes an existing key', () => {
             const cache = initCache();
 
-            cache.set('key_1', 'bar');
-            cache.set('key_2', 'bar');
+            cache.mset([
+                ['key_1', 'bar'],
+                ['key_2', 'bar']
+            ]);
             
             expect(cache.has('key_1')).toBe(true);
 
@@ -151,12 +181,48 @@ describe('Basic Cache', () => {
         });
     });
 
+    describe('mdel', () => {
+        it.each(
+            INVALID_KEYS_TEST_ARRAY
+        )('throws if key is invalid -> %s', (_testLabel: string, key: any) => {
+            const cache = initCache();
+
+            expect(() => cache.mdel([key]))
+                .toThrowError("Key must be a non-empty string");
+          })
+
+        it('deletes existing keys', () => {
+            const cache = initCache();
+
+            cache.mset([
+                ['key_1', 'bar'],
+                ['key_2', 'bar']
+            ]);
+            
+            expect(cache.has('key_1')).toBe(true);
+
+            cache.mdel(['key_1', 'banzai']);
+
+            expect(cache.has('key_1')).toBe(false);
+        });
+
+        it('does nothing if keys do not exist', () => {
+            const cache = initCache();
+
+            cache.mdel(['key_1']);
+
+            expect(cache.has('key_1')).toBe(false);
+        });
+    });
+
     describe('flushAll', () => {
         it('deletes all keys', () => {
             const cache = initCache();
 
-            cache.set('key_1', 'bar');
-            cache.set('key_2', 'bar');
+            cache.mset([
+                ['key_1', 'bar'],
+                ['key_2', 'bar']
+            ]);
             
             expect(cache.has('key_1')).toBe(true);
             expect(cache.has('key_2')).toBe(true);
