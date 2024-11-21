@@ -17,7 +17,7 @@ export default class Cache<T> {
     private _keyLength: number = 0;
     private _cache: Record<string, Wrapper<T>> = {};
     private _pendingRefreshes: Record<string, Promise<boolean>> = {};
-    private _refreshLoopTimeout: ReturnType<typeof setTimeout> | null = null;
+    private _maintenanceLoopTimeout: ReturnType<typeof setTimeout> | null = null;
     private _isStopped: boolean;
 
     /**
@@ -215,7 +215,7 @@ export default class Cache<T> {
         }
 
         this._isStopped = true;
-        clearTimeout(this._refreshLoopTimeout!);
+        clearTimeout(this._maintenanceLoopTimeout!);
     }
 
     /**
@@ -227,8 +227,8 @@ export default class Cache<T> {
         }
 
         this._isStopped = false;
-        if (this._refreshAfterMs) {
-            this._refreshOldValues();
+        if (this._refreshAfterMs || this._expireAfterMs) {
+            this._runMaintenance();
         }
     }
 
@@ -319,13 +319,42 @@ export default class Cache<T> {
     }
 
     /**
+     * Runs the auto-eviction and auto-refresh loops.
+     */
+    private async _runMaintenance() {
+        if (this._expireAfterMs) {
+            this._evictExpiredValues();
+        }
+        if (this._refreshAfterMs) {
+            await this._refreshOldValues();
+        }
+        if (!this.isStopped()) {
+            this._maintenanceLoopTimeout = setTimeout(
+                () => this._runMaintenance(),
+                this._timePrecisionMs
+            );
+        }
+    }
+
+    /**
+     * Evicts all expired values.
+     */
+    private _evictExpiredValues() {
+        this.keys()
+            .filter(key => this._isExpired(key))
+            .forEach(key => this.del(key));
+    }
+
+    /**
      * Refreshes all values that need to be refreshed.
      */
-    private _refreshOldValues() {
-        this.keys()
-            .filter(key => this._needsRefresh(key))
-            .forEach(key => this.refresh(key));
-        this._refreshLoopTimeout = setTimeout(() => this._refreshOldValues(), this._timePrecisionMs);
+    private async _refreshOldValues() {
+        const keysToRefresh = this.keys()
+            .filter(key => this._needsRefresh(key));
+
+        for (const key of keysToRefresh) {
+            await this.refresh(key);
+        }
     }
 
     /**
