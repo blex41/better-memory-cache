@@ -50,9 +50,9 @@ const fruitCache = new Cache<string>({
         ['kiwi', 'kiwi_value'],
         ['lemon', 'lemon_value']
     ]);
-    fruitCache.mget(['kiwi', 'lemon']); // ["kiwi_value", "lemon_value"]
+    console.log(fruitCache.mget(['kiwi', 'lemon'])); // ["kiwi_value", "lemon_value"]
     fruitCache.mdel(['kiwi', 'lemon']); 
-    fruitCache.mget(['kiwi', 'lemon']); // [undefined, undefined]
+    console.log(fruitCache.mget(['kiwi', 'lemon'])); // [undefined, undefined]
 
     // Fetching a value asynchronously
     const banana = await fruitCache.fetch('banana');
