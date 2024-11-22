@@ -19,7 +19,7 @@ npm install --save better-memory-cache
 ```typescript
 import Cache, { HOUR, MINUTE, SECOND } from 'better-memory-cache';
 // Or using CommonJS require:
-// const { default: Cache, MINUTE, SECOND } = require('better-memory-cache');
+// const { default: Cache, HOUR, MINUTE, SECOND } = require('better-memory-cache');
 
 const fruitCache = new Cache<string>({
     namespace: 'fruits',
