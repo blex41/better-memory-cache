@@ -1,3 +1,4 @@
+import { getItem, setItem, removeItem } from "./Persistence";
 import { InvalidStateError, ValidationError } from "./errors";
 import { CacheOptions, Wrapper } from "./interfaces";
 import { hasOwnProperty, withTimeout } from "./utils";
@@ -13,6 +14,7 @@ export default class Cache<T> {
     private _fetchMethod?: ((key: string) => T | undefined | Promise<T | undefined>) | null;
     private _maxKeys?: number | null;
     private _evictStrategy: 'LRU' | 'FIFO' | null = null;
+    private _persistenceDirPath?: string | null = null;
     private _keys: string[] = [];
     private _keyLength: number = 0;
     private _cache: Record<string, Wrapper<T>> = {};
@@ -34,11 +36,18 @@ export default class Cache<T> {
         this._fetchMethod = options?.fetchMethod || null;
         this._maxKeys = options?.maxKeys || null;
         this._evictStrategy = options?.evictStrategy || null;
+        this._persistenceDirPath = options?.persistenceDirPath || null;
         this._isStopped = true;
 
         if ((options?.refreshAfterMs || options?.staleAfterMs) && !options?.fetchMethod) {
             throw new ValidationError(this._getLogPrefix() + "fetchMethod is required when refreshAfterMs or staleAfterMs is set");
         }
+
+        if (options?.persistenceDirPath && !this._namespace) {
+            throw new ValidationError(this._getLogPrefix() + "namespace is required when persistenceDirPath is set");
+        }
+
+        this._restorePersistedData();
 
         this.resume();
     }
@@ -173,6 +182,8 @@ export default class Cache<T> {
         for (const key in this._cache) {
             delete this._cache[key];
         }
+        
+        this._clearPersistedData();
 
         this._updateStats();
 
@@ -191,6 +202,8 @@ export default class Cache<T> {
      */
     load(cache: Record<string, Wrapper<T>>): Cache<T> {
         this._cache = cache;
+
+        this._updatePersistedData();
 
         this._updateStats();
 
@@ -286,6 +299,8 @@ export default class Cache<T> {
             a: oldWrapper?.a || null,
             r: ts,
         };
+        
+        this._updatePersistedData();
 
         this._updateStats();
     }
@@ -310,6 +325,8 @@ export default class Cache<T> {
         this._validateKey(key);
 
         delete this._cache[key];
+
+        this._updatePersistedData();
 
         this._updateStats();
 
@@ -426,5 +443,51 @@ export default class Cache<T> {
      */
     private _getLogPrefix() {
         return `[Cache${this._namespace ? `:${this._namespace}` : ''}] `;
+    }
+
+    /**
+     * Attempts to restore a persisted backup if enabled
+     */
+    private _restorePersistedData(): boolean {
+        if (!this._persistenceDirPath || !this._namespace) {
+            return false;
+        }
+
+        try {
+            const content = getItem(this._namespace, this._persistenceDirPath);
+            const data = JSON.parse(content) as Record<string, Wrapper<T>>;
+            this.load(data);
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private _updatePersistedData(): boolean {
+        if (!this._persistenceDirPath || !this._namespace) {
+            return false;
+        }
+
+        try {
+            const data = JSON.stringify(this._cache);
+            setItem(this._namespace, data, this._persistenceDirPath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private _clearPersistedData(): boolean {
+        if (!this._persistenceDirPath || !this._namespace) {
+            return false;
+        }
+
+        try {
+            removeItem(this._namespace, this._persistenceDirPath);
+            return true;
+        } catch {
+            return false;
+        }
     }
 };

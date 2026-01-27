@@ -76,6 +76,20 @@ export interface CacheOptions<T> {
      * @default null
      */
     evictStrategy?: 'LRU' | 'FIFO' | null;
+
+    /**
+     * Absolute directory path for persisting cache between application restarts,
+     * mostly when developing locally.
+     * 
+     * To delete the persisted cache entirely, you can call myCache.flushAll()
+     * 
+     * If undefined or set to null, no persistence will be used.
+     * If set, the namespace property must also be set, as it will be used
+     * to name the persistence files.
+     * 
+     * > ⚠️ High performance impact
+     */
+    persistenceDirPath?: string | null;
 };
 
 export interface Wrapper<T> {

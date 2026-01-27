@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/github/license/blex41/better-memory-cache)
 [![Codecov](https://codecov.io/github/blex41/better-memory-cache/branch/main/graph/badge.svg?token=OR8OIEK4SN)](https://codecov.io/github/blex41/better-memory-cache)
 
-A lightweight, dependency-free memory cache written in Typescript, with support for stale-while-revalidate, background refresh, LRU and FIFO strategy.
+A lightweight, dependency-free NodeJS memory cache written in Typescript, with support for stale-while-revalidate, background refresh, LRU and FIFO strategy.
 
 ## Install
 
@@ -162,5 +162,19 @@ interface CacheOptions<T> {
      * @default null
      */
     evictStrategy?: 'LRU' | 'FIFO' | null;
+
+    /**
+     * Absolute directory path for persisting cache between application restarts,
+     * mostly when developing locally.
+     * 
+     * To delete the persisted cache entirely, you can call myCache.flushAll()
+     * 
+     * If undefined or set to null, no persistence will be used.
+     * If set, the namespace property must also be set, as it will be used
+     * to name the persistence files.
+     * 
+     * > ⚠️ High performance impact
+     */
+    persistenceDirPath?: string | null;
 }
 ```

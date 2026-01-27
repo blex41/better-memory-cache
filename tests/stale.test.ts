@@ -50,6 +50,22 @@ describe('Stale', () => {
         expect(spy).toHaveBeenCalledTimes(1);
     });
 
+    it('returns stale value immediately when staleTimeoutMs is not set', async () => {
+        const mock = {
+            fetchMethod: async () => {
+                await sleep(5);
+                return 'new_value';
+            }
+        };
+        const spy = vi.spyOn(mock, 'fetchMethod');
+        const cache = initCache(mock.fetchMethod); // no staleTimeoutMs
+
+        await sleep(22);
+        // Key 'foo' exists but is stale; without staleTimeoutMs we return immediately
+        expect(await cache.fetch('foo')).toBe('initial_value');
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
     it('returns newer value when staleTimeoutMs is not exceeded', async () => {
         const mock = {
             fetchMethod: async (key: string) => {
