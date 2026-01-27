@@ -24,7 +24,7 @@ describe('Expiry', () => {
     it('does not retrieve an entry after expiry', async () => {
         const cache = initCache();
 
-        await sleep(22);
+        await sleep(35);
         expect(cache.get('foo')).toBe(undefined);
     });
 
@@ -32,7 +32,7 @@ describe('Expiry', () => {
         const timePrecisionMs = 999999; // Set to a high value to avoid auto-eviction during the test
         const cache = initCache(timePrecisionMs);
 
-        await sleep(22);
+        await sleep(35);
         expect(cache.get('foo')).toBe(undefined);
     });
 });
