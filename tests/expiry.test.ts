@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import Cache from '../src/index';
 import { sleep } from '../src/utils';
 
@@ -34,5 +34,44 @@ describe('Expiry', () => {
 
         await sleep(35);
         expect(cache.get('foo')).toBe(undefined);
+    });
+});
+
+describe('Expiry with fetch()', () => {
+    it('waits for fetchMethod when entry is expired', async () => {
+        const cache = new Cache<string>({
+            expireAfterMs: 5,
+            timePrecisionMs: 999999, // Disable auto-eviction
+            fetchMethod: async () => {
+                await sleep(5);
+                return 'new_value';
+            },
+        });
+
+        cache.set('foo', 'initial_value');
+        await sleep(10); // Wait for expiry
+
+        expect(await cache.fetch('foo')).toBe('new_value');
+    });
+
+    it('calls fetchMethod when entry is expired', async () => {
+        const mock = {
+            fetchMethod: async () => {
+                await sleep(5);
+                return 'new_value';
+            }
+        };
+        const spy = vi.spyOn(mock, 'fetchMethod');
+        const cache = new Cache<string>({
+            expireAfterMs: 20,
+            timePrecisionMs: 999999,
+            fetchMethod: mock.fetchMethod,
+        });
+
+        cache.set('foo', 'initial_value');
+        await sleep(30);
+
+        await cache.fetch('foo');
+        expect(spy).toHaveBeenCalledTimes(1);
     });
 });

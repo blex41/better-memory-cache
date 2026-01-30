@@ -84,8 +84,8 @@ export default class Cache<T> {
 
         this.refresh(key);
         
-        if (!this.has(key)) {
-            // If the key is not present, we need to wait for the refresh to complete
+        if (!this.has(key) || this._isExpired(key)) {
+            // If the key is not present or expired, we need to wait for the refresh to complete
             await this._pendingRefreshes[key];
         } else if (this._staleTimeoutMs) {
             // Otherwise, we wait until the fetch is complete or the stale timeout is reached
