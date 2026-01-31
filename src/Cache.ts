@@ -90,6 +90,10 @@ export default class Cache<T> {
         } else if (this._staleTimeoutMs) {
             // Otherwise, we wait until the fetch is complete or the stale timeout is reached
             await withTimeout(this._pendingRefreshes[key], this._staleTimeoutMs);
+            // If entry expired during the stale timeout, wait for refresh to complete
+            if (this._isExpired(key) && this._isPendingRefresh(key)) {
+                await this._pendingRefreshes[key];
+            }
         }
 
         return this.get(key);

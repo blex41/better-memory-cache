@@ -74,4 +74,22 @@ describe('Expiry with fetch()', () => {
         await cache.fetch('foo');
         expect(spy).toHaveBeenCalledTimes(1);
     });
+
+    it('waits for fetchMethod when entry expires within staleTimeousMs', async () => {
+        const cache = new Cache<string>({
+            expireAfterMs: 20,
+            staleAfterMs: 5,
+            staleTimeoutMs: 20,
+            timePrecisionMs: 999999, // Disable auto-eviction
+            fetchMethod: async () => {
+                await sleep(30);
+                return 'new_value';
+            },
+        });
+
+        cache.set('foo', 'initial_value');
+        await sleep(10); // Wait for stale but not expiry
+
+        expect(await cache.fetch('foo')).toBe('new_value');
+    });
 });
